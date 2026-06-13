@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="LogPulse.Core/LogPulse.Core.csproj" />
+  <Project Path="LogPulse.IngestationEngine/LogPulse.IngestationEngine.csproj" />
+</Solution>
