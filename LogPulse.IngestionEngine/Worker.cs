@@ -37,7 +37,7 @@ public class Worker : BackgroundService
         {
             using (var scope = _scopeFactory.CreateScope())
             {
-                var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                var dbContext = scope.ServiceProvider.GetRequiredService<LogDbContext>();
 
                 var randomLevel = levels[_random.Next(levels.Length)];
                 var randomMessage = messages[_random.Next(messages.Length)];

@@ -3,9 +3,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LogPulse.Core.Data;
 
-public class AppDbContext : DbContext
+public class LogDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    public LogDbContext(DbContextOptions<LogDbContext> options) : base(options)
     {
     }
 

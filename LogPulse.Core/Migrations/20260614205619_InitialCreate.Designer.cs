@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 namespace LogPulse.Core.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(LogDbContext))]
     [Migration("20260614205619_InitialCreate")]
     partial class InitialCreate
     {
