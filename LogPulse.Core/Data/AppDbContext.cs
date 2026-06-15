@@ -1,6 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using LogPulse.Core.Models;
+using Microsoft.EntityFrameworkCore;
 
-namespace LogPulse.Core;
+namespace LogPulse.Core.Data;
 
 public class AppDbContext : DbContext
 {

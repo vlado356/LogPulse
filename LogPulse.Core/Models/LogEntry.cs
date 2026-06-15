@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace LogPulse.Core;
+namespace LogPulse.Core.Models;
 
 public class LogEntry
 {

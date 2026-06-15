@@ -1,5 +1,5 @@
-using LogPulse.Core;
-using LogPulse.IngestationEngine;
+using LogPulse.Core.Data;
+using LogPulse.IngestionEngine;
 using Microsoft.EntityFrameworkCore;
 
 var builder = Host.CreateApplicationBuilder(args);
