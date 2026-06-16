@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="LogPulse.Core/LogPulse.Core.csproj" />
+  <Project Path="LogPulse.Dashboard/LogPulse.Dashboard.Client/LogPulse.Dashboard.Client.csproj" Id="d72dec66-d27e-4c1c-b378-d8bf4d7cc4ac" />
+  <Project Path="LogPulse.Dashboard/LogPulse.Dashboard/LogPulse.Dashboard.csproj" Id="48c7907a-312a-4204-af35-b3210dce335a" />
   <Project Path="LogPulse.IngestionEngine/LogPulse.IngestionEngine.csproj" />
 </Solution>
