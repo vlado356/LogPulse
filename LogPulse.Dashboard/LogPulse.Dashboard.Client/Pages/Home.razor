@@ -7,19 +7,72 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="text-primary">📋 Живи Логове (System Live Logs)</h1>
-        <button class="btn btn-success" @onclick="LoadLogs">🔄 Обнови данните</button>
+        <button class="btn btn-secondary" @onclick="ClearFilters">🔄 Изчисти филтрите</button>
+    </div>
+
+    <div class="row g-3 mb-4 p-3 bg-light rounded border text-dark shadow-sm">
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Брой логове:</label>
+            <input type="number" @bind="selectedLimit" class="form-control" min="1" max="1000" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Филтър Ниво:</label>
+            <select @bind="selectedLevel" class="form-select">
+                <option value="">Всички</option>
+                <option value="INFO">INFO</option>
+                <option value="WARNING">WARNING</option>
+                <option value="ERROR">ERROR</option>
+                <option value="CRITICAL">CRITICAL</option>
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Източник:</label>
+            <select @bind="searchSource" class="form-select">
+                <option value="">Всички източници</option>
+                @if (availableSources != null)
+                {
+                    @foreach (var source in availableSources)
+                    {
+                        <option value="@source">@source</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Търси по Дата:</label>
+            <input type="date" @bind="selectedDate" class="form-control" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label fw-bold">Сортирай по:</label>
+            <select @bind="selectedSort" class="form-select">
+                <option value="date">Най-нови първи</option>
+                <option value="level_desc">Критични първи</option>
+                <option value="level_asc">По азбучен ред</option>
+                <option value="source">По Източник</option>
+            </select>
+        </div>
+
+        <div class="col-md-2 d-flex align-items-end">
+            <button class="btn btn-primary w-100 fw-bold" @onclick="LoadLogs">
+                🔍 Приложи
+            </button>
+        </div>
     </div>
 
     @if (logs == null)
     {
         <div class="text-center mt-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Зареждане на логове от API-то...</p>
+            <p class="mt-2">Зареждане на логове...</p>
         </div>
     }
     else if (!logs.Any())
     {
-        <div class="alert alert-warning">Няма намерени логове в базата данни.</div>
+        <div class="alert alert-warning shadow-sm">Няма намерени логове с избраните филтри.</div>
     }
     else
     {
@@ -39,7 +92,7 @@
                     <tr>
                         <td>@log.Timestamp.ToString("HH:mm:ss dd.MM.yyyy")</td>
                         <td>
-                            <span class="badge @(log.LogLevel == "ERROR" ? "bg-danger" : "bg-info")">
+                            <span class="badge @GetLogLevelClass(log.LogLevel)">
                                 @log.LogLevel
                             </span>
                         </td>
@@ -55,22 +108,82 @@
 
 @code {
     private List<LogEntry>? logs;
+    private List<string> availableSources = new();
+
+    private int selectedLimit = 20;
+    private string selectedLevel = "";
+    private string searchSource = "";
+    private string selectedSort = "date";
+    private DateTime? selectedDate = null; 
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadSources();
         await LoadLogs();
     }
 
-    private async Task LoadLogs()
-    {   
+    private async Task LoadSources()
+    {
         try
         {
-            logs = await Http.GetFromJsonAsync<List<LogEntry>>("api/logs");
+            availableSources = await Http.GetFromJsonAsync<List<string>>("api/logs/sources") ?? new();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Грешка при комуникация с API: {ex.Message}");
+            Console.WriteLine($"Грешка източници: {ex.Message}");
+        }
+    }
+
+    private async Task LoadLogs()
+    {
+        try
+        {
+            int limitToSend = selectedLimit <= 0 ? 20 : selectedLimit;
+            var url = $"api/logs?limit={limitToSend}";
+
+            if (!string.IsNullOrEmpty(selectedLevel))
+                url += $"&level={selectedLevel}";
+
+            if (!string.IsNullOrEmpty(searchSource))
+                url += $"&source={searchSource}";
+
+            if (!string.IsNullOrEmpty(selectedSort))
+                url += $"&sortBy={selectedSort}";
+
+            if (selectedDate.HasValue)
+                url += $"&date={selectedDate.Value.ToString("yyyy-MM-dd")}";
+
+            logs = await Http.GetFromJsonAsync<List<LogEntry>>(url) ?? new List<LogEntry>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Грешка комуникация: {ex.Message}");
             logs = new List<LogEntry>();
         }
+    }
+
+    private async Task ClearFilters()
+    {
+        selectedLimit = 20;
+        selectedLevel = "";
+        searchSource = "";
+        selectedSort = "date";
+        selectedDate = null;
+        await LoadLogs();
+    }
+
+    private string GetLogLevelClass(string logLevel)
+    {
+        if (string.IsNullOrEmpty(logLevel)) return "bg-secondary";
+
+        return logLevel.ToUpper() switch
+        {
+            "CRITICAL" => "bg-danger text-white fw-bold",
+            "ERROR" => "bg-danger",
+            "WARNING" => "bg-warning text-dark",
+            "INFO" => "bg-success",
+            "DEBUG" => "bg-info text-dark",
+            _ => "bg-secondary"
+        };
     }
 }

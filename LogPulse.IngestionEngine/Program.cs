@@ -1,6 +1,5 @@
 using LogPulse.Core.Data;
 using LogPulse.IngestionEngine;
-using LogPulse.Core.Models;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,39 +7,67 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<LogDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+builder.Services.AddHostedService<Worker>();
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
     });
 });
 
-//builder.Services.AddHostedService<Worker>();
-
 var app = builder.Build();
+
 app.UseCors();
 
-app.MapPost("/api/logs", async (LogEntry log, LogDbContext db) =>
+app.MapGet("/api/logs", async (
+    LogDbContext db,
+    int limit = 20,
+    string? level = null,
+    string? source = null,
+    string? sortBy = "date",
+    string? date = null) =>
 {
-    log.Timestamp = DateTime.UtcNow;
+    var query = db.Logs.AsQueryable();
 
-    db.Logs.Add(log);
-    await db.SaveChangesAsync();
+    if (!string.IsNullOrEmpty(level))
+    {
+        query = query.Where(l => l.LogLevel.ToUpper() == level.ToUpper());
+    }
 
-    return Results.Ok(new { message = "Log accepted successfully!" });
+    if (!string.IsNullOrEmpty(source))
+    {
+        query = query.Where(l => l.Source == source);
+    }
+
+    if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var parsedDate))
+    {
+        DateTime startDate = DateTime.SpecifyKind(parsedDate.Date, DateTimeKind.Utc);
+        DateTime endDate = startDate.AddDays(1);
+
+        query = query.Where(l => l.Timestamp >= startDate && l.Timestamp < endDate);
+    }
+
+    query = sortBy.ToLower() switch
+    {
+        "level_asc" => query.OrderBy(l => l.LogLevel),
+        "level_desc" => query.OrderByDescending(l => l.LogLevel),
+        "source" => query.OrderBy(l => l.Source),
+        _ => query.OrderByDescending(l => l.Timestamp)
+    };
+
+    if (limit <= 0) limit = 20;
+
+    return await query.Take(limit).ToListAsync();
 });
 
-app.MapGet("/api/logs", async (LogDbContext db) =>
+app.MapGet("/api/logs/sources", async (LogDbContext db) =>
 {
-    var latestLogs = await db.Logs
-        .OrderByDescending(l => l.Timestamp)
-        .Take(20)
+    return await db.Logs
+        .Select(l => l.Source)
+        .Distinct() 
         .ToListAsync();
-
-    return Results.Ok(latestLogs);
 });
 
 app.Run();
